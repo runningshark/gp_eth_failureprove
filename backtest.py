@@ -7,6 +7,9 @@ import numpy as np
 FEE = 0.0005          # one-way taker fee on turnover
 HARD_STOP = 0.07      # hard stop loss from entry (price move)
 TRAIL_GIVEBACK = 0.04 # trailing stop give-back
+BARS_PER_YEAR = 365.0 # crypto trades every day; 252 understates ann/Sharpe
+SIGNAL_THRESHOLD = 0.05
+COOLDOWN_BARS = 5
 
 
 def run_backtest(close: np.ndarray, pos: np.ndarray) -> dict:
@@ -16,6 +19,7 @@ def run_backtest(close: np.ndarray, pos: np.ndarray) -> dict:
     pos_l = np.zeros(n)
     pos_l[1:] = pos[:-1]                        # fill at bar t close, earn t+1
     turn = np.zeros(n)
+    turn[0] = abs(pos[0])                       # opening trade also pays a fee
     turn[1:] = np.abs(pos[1:] - pos[:-1])
     strat = pos_l * ret - turn * FEE
     equity = np.cumprod(1.0 + strat)
@@ -29,9 +33,9 @@ def summarize(close: np.ndarray, pos: np.ndarray) -> dict | None:
         return None
     n = len(r["strat"])
     total = float(equity[-1] - 1.0)
-    ann = float(equity[-1] ** (252.0 / n) - 1.0) if equity[-1] > 0 else -1.0
-    sd = float(r["strat"].std())
-    sharpe = float(r["strat"].mean() / sd * np.sqrt(252.0)) if sd > 1e-12 else 0.0
+    ann = float(equity[-1] ** (BARS_PER_YEAR / n) - 1.0) if equity[-1] > 0 else -1.0
+    sd = float(r["strat"].std(ddof=1)) if n > 1 else 0.0
+    sharpe = float(r["strat"].mean() / sd * np.sqrt(BARS_PER_YEAR)) if sd > 1e-12 else 0.0
     peak = np.maximum.accumulate(equity)
     mdd = float(np.max(1.0 - equity / np.maximum(peak, 1e-12)))
     calmar = ann / mdd if mdd > 1e-9 else 0.0
@@ -60,15 +64,23 @@ def fitness(m: dict | None, complexity_weight: float = 0.015) -> float:
 def apply_risk_overlay(close: np.ndarray, pos: np.ndarray,
                        hard_stop: float = HARD_STOP,
                        trail: float = TRAIL_GIVEBACK,
-                       cooldown: int = 5) -> np.ndarray:
-    """Exit on hard stop / trailing give-back; re-enter after cooldown if signal persists."""
+                       cooldown: int = COOLDOWN_BARS) -> np.ndarray:
+    """Exit on hard stop / trailing give-back; re-enter after cooldown if signal persists.
+
+    ``pos`` is the fractional model position.  A signal is only considered
+    "on" when |pos| > SIGNAL_THRESHOLD, the same rule used by the live runner
+    and the Pine export.  Using np.sign(pos) here would enter on numerically
+    tiny positions and make live trading diverge from the backtest.
+    """
     n = len(close)
     out = np.zeros(n)
     state = 0.0
     cd = 0
     entry = peak = 1.0
     for t in range(n):
-        sig = float(np.sign(pos[t]))
+        p = pos[t]
+        sig = 1.0 if p > SIGNAL_THRESHOLD else (-1.0 if p < -SIGNAL_THRESHOLD else 0.0)
+        just_stopped = False
         if state != 0.0:
             if sig != state:
                 state = 0.0
@@ -79,11 +91,13 @@ def apply_risk_overlay(close: np.ndarray, pos: np.ndarray,
                 if exc <= -hard_stop or give >= trail:
                     state = 0.0
                     cd = cooldown
+                    just_stopped = True
+        # Do not burn one cooldown bar on the stop bar itself.
+        if cd > 0 and not just_stopped:
+            cd -= 1
         if state == 0.0 and cd == 0 and sig != 0.0:
             state = sig
             entry = close[t]
             peak = close[t]
-        elif cd > 0:
-            cd -= 1
         out[t] = state
     return out

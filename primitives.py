@@ -40,8 +40,19 @@ def _safe_div(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 
 def _ema(x: np.ndarray, n: int) -> np.ndarray:
+    """EMA seeded with x[0], matching Pine's ta.ema recurrence.
+
+    lfilter's default zero initial state makes the first bars decay from 0,
+    which is neither Pine's behaviour nor a sensible warmup.
+    """
     a = 2.0 / (n + 1.0)
-    return lfilter([a], [1.0, -(1.0 - a)], x)
+    return lfilter([a], [1.0, -(1.0 - a)], x, zi=[(1.0 - a) * x[0]])[0]
+
+
+def _rma(x: np.ndarray, n: int) -> np.ndarray:
+    """Wilder's smoothing (Pine ta.rma), seeded with x[0]."""
+    a = 1.0 / n
+    return lfilter([a], [1.0, -(1.0 - a)], x, zi=[(1.0 - a) * x[0]])[0]
 
 
 def _sma(x: np.ndarray, n: int) -> np.ndarray:
@@ -76,8 +87,8 @@ def _zscore(x: np.ndarray, n: int) -> np.ndarray:
 
 def _rsi(x: np.ndarray, n: int) -> np.ndarray:
     d = np.diff(x, prepend=x[0])
-    up = _ema(np.where(d > 0, d, 0.0), n)
-    dn = _ema(np.where(d < 0, -d, 0.0), n)
+    up = _rma(np.where(d > 0, d, 0.0), n)
+    dn = _rma(np.where(d < 0, -d, 0.0), n)
     return 100.0 * _safe_div(up, up + dn)
 
 

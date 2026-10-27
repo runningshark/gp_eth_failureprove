@@ -149,12 +149,21 @@ def tree_from_json(obj) -> tuple:
     return obj
 
 
-def to_position(raw: np.ndarray, smooth: int = 3) -> np.ndarray:
-    """Rolling zscore of the raw tree output -> tanh -> bounded position [-1,1]."""
+def to_position(raw: np.ndarray, smooth: int = 3, warmup: int = 200) -> np.ndarray:
+    """Rolling zscore of the raw tree output -> tanh -> bounded position [-1,1].
+
+    The first ``warmup - 1`` bars are forced flat: a 2-observation z-score is
+    numerically extreme and would otherwise create huge fake positions at the
+    start of every evaluation window (and would not match Pine, where the
+    200-bar SMA is na during warmup).
+    """
     from .primitives import _zscore
-    z = _zscore(raw, 200)
+    z = _zscore(raw, warmup)
+    if warmup > 1:
+        z[: warmup - 1] = 0.0
     pos = np.tanh(z)
     if smooth > 1:
         k = np.ones(smooth) / smooth
+        # 'full' convolution is causal here: y[t] uses pos[t], pos[t-1], ...
         pos = np.convolve(pos, k, mode="full")[: len(pos)]
     return np.clip(np.nan_to_num(pos, nan=0.0), -1.0, 1.0)
