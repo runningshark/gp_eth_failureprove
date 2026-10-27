@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from .backtest import (COOLDOWN_BARS, FEE, HARD_STOP, SIGNAL_THRESHOLD,
+                       TRAIL_GIVEBACK)
 from .primitives import BINARY, TS1, UNARY
-
-FEE = 0.0005
 
 
 def _pine(node: tuple) -> str:
@@ -56,23 +56,31 @@ z = (raw - ta.sma(raw, 200)) / max(nz(ta.stdev(raw, 200), 0.0), 1e-12)
 pos = math.tanh(nz(z))
 pos := math.sum(pos, 3) / 3.0
 
-// ---- risk overlay: hard stop -7% + trailing give-back 4% ----
+// ---- risk overlay: hard stop -7% + trailing give-back 4% + 5-bar cooldown ----
+// Same state machine as backtest.apply_risk_overlay and live_runner.overlay_step.
 var float entry = na
 var float peak = na
 var float state = 0.0
-var float last_sig = 0.0
-sig = pos > 0.05 ? 1.0 : pos < -0.05 ? -1.0 : 0.0
-if sig != last_sig
+var int cd = 0
+sig = pos > {SIGNAL_THRESHOLD} ? 1.0 : pos < -{SIGNAL_THRESHOLD} ? -1.0 : 0.0
+stopped = false
+if state != 0
+    if sig != state
+        state := 0.0
+    else
+        peak := state > 0 ? math.max(peak, close) : math.min(peak, close)
+        exc = (close / entry - 1.0) * state
+        give = state > 0 ? 1.0 - close / peak : close / peak - 1.0
+        if exc <= -{HARD_STOP} or give >= {TRAIL_GIVEBACK}
+            state := 0.0
+            cd := {COOLDOWN_BARS}
+            stopped := true
+if cd > 0 and not stopped
+    cd := cd - 1
+if state == 0 and cd == 0 and sig != 0
     state := sig
     entry := close
     peak := close
-    last_sig := sig
-else if state != 0
-    peak := state > 0 ? math.max(peak, close) : math.min(peak, close)
-    exc = state > 0 ? close / entry - 1.0 : 1.0 - close / entry
-    give = state > 0 ? 1.0 - close / peak : close / peak - 1.0
-    if exc <= -0.07 or give >= 0.04
-        state := 0.0
 
 plot(pos, "pos", color=color.gray, display=display.data_window)
 plotshape(state > 0 and state[1] <= 0, style=shape.labelup, location=location.belowbar,

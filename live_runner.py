@@ -147,6 +147,7 @@ def overlay_step(st: dict, sig: float, price: float, new_bar: bool,
     """与 backtest.apply_risk_overlay 同构的单步状态机。
     new_bar=True 时走收盘逻辑(含 cd 递减/重进); 盘中只查止损与追踪。"""
     if new_bar:
+        just_stopped = False
         if st["state"] != 0.0:
             if sig != st["state"]:
                 st["state"] = 0.0
@@ -157,12 +158,13 @@ def overlay_step(st: dict, sig: float, price: float, new_bar: bool,
                 if exc <= -hard_stop or give >= trail:
                     st["state"] = 0.0
                     st["cd"] = cooldown
+                    just_stopped = True
+        if st["cd"] > 0 and not just_stopped:
+            st["cd"] -= 1
         if st["state"] == 0.0 and st["cd"] == 0 and sig != 0.0:
             st["state"] = sig
             st["entry"] = price
             st["peak"] = price
-        elif st["cd"] > 0:
-            st["cd"] -= 1
     else:
         if st["state"] != 0.0:
             st["peak"] = max(st["peak"], price) if st["state"] > 0 else min(st["peak"], price)
