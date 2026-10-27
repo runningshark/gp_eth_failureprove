@@ -32,21 +32,51 @@ class EvolutionLog:
     gen: list = field(default_factory=list)
     best: list = field(default_factory=list)
     mean: list = field(default_factory=list)
+    # Top genomes seen, kept so a caller can re-select on a validation period
+    # that was never part of the training fitness.
+    hall: list = field(default_factory=list)
 
 
-def evaluate(ind: Individual, ctx: dict, robust: bool = False) -> float:
+def evaluate(ind: Individual, ctx: dict, robust: bool = False,
+             folds: list[tuple[int, int]] | None = None) -> float:
+    """Score one genome.
+
+    ``folds`` (list of [start, end) indices) is the honest way to fight
+    regime overfitting: the same position series is scored on several
+    sub-periods and the mean-minus-dispersion objective rewards consistency
+    without collapsing to a do-nothing strategy.  The old ``robust``
+    two-halves mode is kept for compatibility.
+    """
     try:
         raw = eval_tree(ind.tree, ctx)
         if not np.all(np.isfinite(raw)):
             raw = np.nan_to_num(raw, nan=0.0, posinf=0.0, neginf=0.0)
         pos = to_position(raw)
-        if robust:
+        full = summarize(ctx["close"], pos)
+        if full is None:
+            raise ValueError("window failed")
+        ind.metrics = full
+        ind.metrics["size"] = ind.size
+        if folds:
+            scores = []
+            for a, b in folds:
+                m = summarize(ctx["close"][a:b], pos[a:b])
+                if m is None:
+                    scores.append(-1e9)
+                else:
+                    m["size"] = ind.size
+                    scores.append(fitness(m))
+            # Mean minus dispersion: a hard min collapses to flat strategies
+            # because every real strategy has at least one bad year.
+            ind.score = float(np.mean(scores) - 0.5 * np.std(scores))
+        elif robust:
             n = len(pos)
             mid = n // 2
             m1 = summarize(ctx["close"][:mid], pos[:mid])
             m2 = summarize(ctx["close"][mid:], pos[mid:])
             if m1 is None or m2 is None:
                 raise ValueError("window failed")
+            m1["size"] = m2["size"] = ind.size
             s1, s2 = fitness(m1), fitness(m2)
             ind.metrics = {k: 0.5 * (m1[k] + m2[k])
                            for k in ("total", "ann", "sharpe", "mdd", "calmar",
@@ -54,10 +84,6 @@ def evaluate(ind: Individual, ctx: dict, robust: bool = False) -> float:
             ind.metrics["size"] = ind.size
             ind.score = min(s1, s2) + 0.25 * 0.5 * (s1 + s2)
         else:
-            raw_metrics = summarize(ctx["close"], pos)
-            ind.metrics = raw_metrics
-            if ind.metrics is not None:
-                ind.metrics["size"] = ind.size
             ind.score = fitness(ind.metrics)
     except Exception:
         ind.metrics = None
@@ -65,15 +91,37 @@ def evaluate(ind: Individual, ctx: dict, robust: bool = False) -> float:
     return ind.score
 
 
+def year_folds(index, min_bars: int = 250) -> list[tuple[int, int]]:
+    """Full calendar-year folds over a DatetimeIndex (partial years excluded)."""
+    folds = []
+    years = np.asarray(getattr(index, "dt", index).year)
+    for y in np.unique(years):
+        idx = np.flatnonzero(years == y)
+        if len(idx) >= min_bars:
+            folds.append((int(idx[0]), int(idx[-1]) + 1))
+    return folds
+
+
 def evolve(df, pop_size=100, generations=30, tournament_k=5,
-           seed=42, verbose=True, robust=False) -> tuple[Individual, EvolutionLog]:
+           seed=42, verbose=True, robust=False,
+           folds: list[tuple[int, int]] | None = None) -> tuple[Individual, EvolutionLog]:
     ctx = build_context(df)
     rng = random.Random(seed)
-    np_rng = np.random.default_rng(seed)
+    hall: dict[tuple, Individual] = {}
+
+    def remember(inds) -> None:
+        for ind in inds:
+            if ind.metrics is None:
+                continue
+            prev = hall.get(ind.tree)
+            if prev is None or ind.score > prev.score:
+                hall[ind.tree] = Individual(tree=ind.tree, score=ind.score,
+                                             metrics=ind.metrics)
 
     pop = [Individual(random_tree(rng)) for _ in range(pop_size)]
     for ind in pop:
-        evaluate(ind, ctx, robust=robust)
+        evaluate(ind, ctx, robust=robust, folds=folds)
+    remember(sorted(pop, key=lambda i: i.score, reverse=True)[:10])
 
     log = EvolutionLog()
     best_ever = max(pop, key=lambda i: i.score)
@@ -106,7 +154,7 @@ def evolve(df, pop_size=100, generations=30, tournament_k=5,
             else:
                 child_tree = mutate(p1.tree, rng)
             child = Individual(tree=child_tree)
-            evaluate(child, ctx, robust=robust)
+            evaluate(child, ctx, robust=robust, folds=folds)
             next_pop.append(child)
         pop = next_pop
 
@@ -114,6 +162,9 @@ def evolve(df, pop_size=100, generations=30, tournament_k=5,
         if cur_best.score > best_ever.score:
             best_ever = Individual(tree=cur_best.tree, score=cur_best.score,
                                    metrics=cur_best.metrics)
+        remember(sorted(pop, key=lambda i: i.score, reverse=True)[:10])
+    remember([best_ever])
+    log.hall = sorted(hall.values(), key=lambda i: i.score, reverse=True)[:200]
 
     if verbose:
         print(f"\nBEST: {best_ever.expr}")
