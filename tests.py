@@ -133,6 +133,41 @@ def test_constant_long_turnover():
     assert np.all(r["turnover"][1:] == 0.0)
 
 
+def test_trend_warmup_and_leverage_bounds():
+    from .trend import LOOKBACKS, target_position
+    df = _df(600)
+    pos = target_position(df, vol_target=0.4, max_lev=2.0)
+    assert np.all(pos[:max(LOOKBACKS)] == 0.0)
+    assert np.max(np.abs(pos)) <= 2.0 + 1e-12
+    assert np.all(np.isfinite(pos))
+
+
+def test_trend_no_lookahead():
+    from .trend import target_position
+    df = _df(900)
+    full = target_position(df)
+    for k in (400, 700):
+        part = target_position(df.iloc[:k])
+        assert np.array_equal(full[:k], part), f"future data changed past trend positions at k={k}"
+
+
+def test_trend_long_only():
+    from .trend import target_position
+    pos = target_position(_df(600), long_only=True)
+    assert np.all(pos >= 0.0)
+
+
+def test_trend_btc_confirmation_masks_opposite_signals():
+    from .trend import target_position
+    df = _df(600, seed=1)
+    btc = _df(600, seed=2)
+    pos = target_position(df, btc)
+    assert np.max(np.abs(pos)) <= 2.0 + 1e-12
+    assert np.all(np.isfinite(pos))
+    # no position during the warmup even with BTC available
+    assert np.all(pos[:60] == 0.0)
+
+
 def main() -> None:
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]
