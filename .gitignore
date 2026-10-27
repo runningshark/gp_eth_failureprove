@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+gp_live_state.json
+gp_paper_state.json
+gp_equity_log.json
+out/*.log
+
