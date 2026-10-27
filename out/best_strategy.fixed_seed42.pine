@@ -1,0 +1,49 @@
+//@version=6
+strategy("GP-Eth", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity,
+     default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.050,
+     process_orders_on_close=true, calc_on_every_tick=false)
+
+// ---- evolved expression ----
+raw = ta.lowest((math.max(((ta.lowest(math.abs((((low) - ta.sma(low, 8)) / max(nz(ta.stdev(low, 8), 0.0), 1e-12))), 2)) > (low) ? 1.0 : 0.0), (math.abs((((low) - ta.sma(low, 8)) / max(nz(ta.stdev(low, 8), 0.0), 1e-12))) * math.abs((((low) - ta.sma(low, 8)) / max(nz(ta.stdev(low, 8), 0.0), 1e-12))))) * (ta.highest((nz(ta.stdev(low, 2), 0.0) * nz(ta.stdev(nz(ta.stdev((nz(ta.stdev((((high - low) / close) * (((low) - ta.sma(low, 8)) / max(nz(ta.stdev(low, 8), 0.0), 1e-12))), 8), 0.0) * (((low) - ta.sma(low, 8)) / max(nz(ta.stdev(low, 8), 0.0), 1e-12))), 8), 0.0), 2), 0.0)), 144) * math.abs(math.abs((((low) - ta.sma(low, 8)) / max(nz(ta.stdev(low, 8), 0.0), 1e-12)))))), 89)
+z = (raw - ta.sma(raw, 200)) / max(nz(ta.stdev(raw, 200), 0.0), 1e-12)
+pos = math.tanh(nz(z))
+pos := math.sum(pos, 3) / 3.0
+
+// ---- risk overlay: hard stop -7% + trailing give-back 4% + 5-bar cooldown ----
+// Same state machine as backtest.apply_risk_overlay and live_runner.overlay_step.
+var float entry = na
+var float peak = na
+var float state = 0.0
+var int cd = 0
+sig = pos > 0.05 ? 1.0 : pos < -0.05 ? -1.0 : 0.0
+stopped = false
+if state != 0
+    if sig != state
+        state := 0.0
+    else
+        peak := state > 0 ? math.max(peak, close) : math.min(peak, close)
+        exc = (close / entry - 1.0) * state
+        give = state > 0 ? 1.0 - close / peak : close / peak - 1.0
+        if exc <= -0.07 or give >= 0.04
+            state := 0.0
+            cd := 5
+            stopped := true
+if cd > 0 and not stopped
+    cd := cd - 1
+if state == 0 and cd == 0 and sig != 0
+    state := sig
+    entry := close
+    peak := close
+
+plot(pos, "pos", color=color.gray, display=display.data_window)
+plotshape(state > 0 and state[1] <= 0, style=shape.labelup, location=location.belowbar,
+     color=color.new(color.teal, 0), text="L", size=size.tiny)
+plotshape(state < 0 and state[1] >= 0, style=shape.labeldown, location=location.abovebar,
+     color=color.new(color.maroon, 0), text="S", size=size.tiny)
+
+if state > 0
+    strategy.entry("L", strategy.long)
+else if state < 0
+    strategy.entry("S", strategy.short)
+else
+    strategy.close_all()

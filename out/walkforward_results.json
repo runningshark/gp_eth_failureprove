@@ -1,0 +1,530 @@
+{
+ "config": {
+  "data": null,
+  "seeds": "0-4",
+  "pop": 100,
+  "gens": 40,
+  "years": "2022-2026"
+ },
+ "years": {
+  "2022": {
+   "runs": [
+    {
+     "seed": 0,
+     "score": 6.060210502068499,
+     "size": 25,
+     "train_sharpe": 2.1859447672238264,
+     "test": {
+      "total": 0.11850637712884171,
+      "sharpe": 0.47629559621114814,
+      "mdd": 0.36443751288565596,
+      "flips": 12
+     },
+     "expr": "min(max(zscore(tsmin(neg(volume), 21), 55), max(zscore(tsmin(neg(volume), 5), 34), min(roc(tsmin(neg(volume), 2), 5), min(hlr, close)))), zscore(tsmin(zscore(tsmin(abs(volume), 55), 13), 34), 34))",
+     "seconds": 4.8
+    },
+    {
+     "seed": 1,
+     "score": 5.8590183573734675,
+     "size": 33,
+     "train_sharpe": 2.019664888790378,
+     "test": {
+      "total": -0.5171605238538807,
+      "sharpe": -1.4372752230032653,
+      "mdd": 0.550202747508731,
+      "flips": 78
+     },
+     "expr": "lt(neg(hlr), sub(roc(mul(tsmax(open, 55), mul(tsmax(low, 21), max(open, sub(roc(roc(max(ret, sub(roc(mul(tsmax(low, 3), roc(mul(tsmax(low, 21), add(ret, open)), 3)), 55), ret)), 2), 3), ret)))), 3), ret))",
+     "seconds": 3.2
+    },
+    {
+     "seed": 2,
+     "score": 3.9938596921701772,
+     "size": 9,
+     "train_sharpe": 1.321443441726548,
+     "test": {
+      "total": 0.26162099558876917,
+      "sharpe": 0.6861287055797946,
+      "mdd": 0.3047589435299489,
+      "flips": 14
+     },
+     "expr": "zscore(sub(zscore(div(high, tsmax(open, 89)), 13), tsmax(volume, 89)), 34)",
+     "seconds": 4.0
+    },
+    {
+     "seed": 3,
+     "score": 6.1647309895201525,
+     "size": 9,
+     "train_sharpe": 2.508461017354317,
+     "test": {
+      "total": -0.21045861546287215,
+      "sharpe": -0.6567182415966766,
+      "mdd": 0.3207356305045189,
+      "flips": 62
+     },
+     "expr": "roc(gt(gt(zscore(rsi(rsi(high, 21), 5), 21), hlr), ret), 2)",
+     "seconds": 3.6
+    },
+    {
+     "seed": 4,
+     "score": 4.317743779717981,
+     "size": 5,
+     "train_sharpe": 1.8732366461562047,
+     "test": {
+      "total": -1.609823385706477e-13,
+      "sharpe": 0.0,
+      "mdd": 4.1455727739503345e-13,
+      "flips": 75
+     },
+     "expr": "abs(zscore(zscore(sma(low, 89), 3), 2))",
+     "seconds": 2.8
+    }
+   ],
+   "ensemble_median": {
+    "total": -0.10617441418463724,
+    "sharpe": -0.39164257808397124,
+    "mdd": 0.21657970263593995,
+    "flips": 78
+   },
+   "ensemble_mean": {
+    "total": -0.059798654161521414,
+    "sharpe": -0.21880489964621463,
+    "mdd": 0.183970507640545,
+    "flips": 56
+   },
+   "ensemble_median_risk": {
+    "total": 0.02792186720647627,
+    "sharpe": 0.3080461666513846,
+    "mdd": 0.3847414502635218,
+    "flips": 112
+   },
+   "buy_hold": {
+    "total": -0.6747940322014677,
+    "sharpe": -0.8557982363850489,
+    "mdd": 0.7400575194539571
+   }
+  },
+  "2023": {
+   "runs": [
+    {
+     "seed": 0,
+     "score": 2.125025174250529,
+     "size": 4,
+     "train_sharpe": 1.0676005875726222,
+     "test": {
+      "total": 0.3985106866579391,
+      "sharpe": 1.1297207963989868,
+      "mdd": 0.18155953160784377,
+      "flips": 9
+     },
+     "expr": "sma(zscore(tsmin(hlr, 5), 2), 55)",
+     "seconds": 2.9
+    },
+    {
+     "seed": 1,
+     "score": 4.102004160010456,
+     "size": 14,
+     "train_sharpe": 1.577788710241392,
+     "test": {
+      "total": -0.2896868231163312,
+      "sharpe": -0.8727429229294561,
+      "mdd": 0.42802865535860535,
+      "flips": 27
+     },
+     "expr": "rsi(zscore(ema(sma(mul(sma(rsi(high, 34), 89), mul(sma(rsi(high, 34), 89), tsmin(high, 89))), 3), 8), 21), 2)",
+     "seconds": 4.7
+    },
+    {
+     "seed": 2,
+     "score": 3.9093265024251136,
+     "size": 19,
+     "train_sharpe": 1.3712998880123666,
+     "test": {
+      "total": 0.032247942628228055,
+      "sharpe": 0.25861206024304917,
+      "mdd": 0.33049580300487125,
+      "flips": 16
+     },
+     "expr": "zscore(abs(mul(tsmin(abs(low), 34), mul(tsmax(abs(mul(tsmin(abs(low), 8), neg(abs(tsmin(tsmin(low, 2), 34))))), 89), high))), 21)",
+     "seconds": 3.9
+    },
+    {
+     "seed": 3,
+     "score": 4.086072740927474,
+     "size": 12,
+     "train_sharpe": 1.740217180924479,
+     "test": {
+      "total": 0.03328031105054974,
+      "sharpe": 0.48028045777116457,
+      "mdd": 0.04385158615883822,
+      "flips": 59
+     },
+     "expr": "mul(zscore(low, 34), div(div(close, roc(low, 21)), rsi(roc(abs(ret), 5), 5)))",
+     "seconds": 3.4
+    },
+    {
+     "seed": 4,
+     "score": 4.791065573138672,
+     "size": 24,
+     "train_sharpe": 2.048375539472044,
+     "test": {
+      "total": 0.0011537669242918103,
+      "sharpe": 0.051572342903572196,
+      "mdd": 0.07680149957897775,
+      "flips": 64
+     },
+     "expr": "mul(abs(max(neg(stddev(abs(mul(gt(roc(neg(mul(open, low)), 144), roc(volume, 5)), div(low, close))), 3)), roc(volume, 5))), div(hlr, roc(ret, 5)))",
+     "seconds": 3.2
+    }
+   ],
+   "ensemble_median": {
+    "total": 0.03759870318236036,
+    "sharpe": 0.31883287858571796,
+    "mdd": 0.13370690736416657,
+    "flips": 65
+   },
+   "ensemble_mean": {
+    "total": 0.04520646898065728,
+    "sharpe": 0.40008915397754663,
+    "mdd": 0.1353018070172498,
+    "flips": 29
+   },
+   "ensemble_median_risk": {
+    "total": -0.2475033439364367,
+    "sharpe": -0.5950369191802604,
+    "mdd": 0.45646101365973524,
+    "flips": 103
+   },
+   "buy_hold": {
+    "total": 0.9067568449917653,
+    "sharpe": 1.608099190749031,
+    "mdd": 0.2733129746491897
+   }
+  },
+  "2024": {
+   "runs": [
+    {
+     "seed": 0,
+     "score": 2.2504172199037167,
+     "size": 5,
+     "train_sharpe": 1.0661846538022668,
+     "test": {
+      "total": 0.12901549781722133,
+      "sharpe": 0.4991695269092073,
+      "mdd": 0.3044624306493817,
+      "flips": 23
+     },
+     "expr": "sma(zscore(tsmin(tsmin(hlr, 8), 2), 2), 55)",
+     "seconds": 3.2
+    },
+    {
+     "seed": 1,
+     "score": 4.18296795123679,
+     "size": 18,
+     "train_sharpe": 1.8638776559981496,
+     "test": {
+      "total": -0.12536545481809336,
+      "sharpe": -0.5273217351339385,
+      "mdd": 0.339810609978196,
+      "flips": 62
+     },
+     "expr": "min(zscore(volume, 55), sub(sub(sub(lt(hlr, high), zscore(volume, 144)), max(ret, roc(tsmin(zscore(high, 13), 8), 2))), ret))",
+     "seconds": 5.8
+    },
+    {
+     "seed": 2,
+     "score": 3.7466213659360768,
+     "size": 14,
+     "train_sharpe": 1.6432208651584188,
+     "test": {
+      "total": -0.008909208954323455,
+      "sharpe": -0.005523945993909608,
+      "mdd": 0.11530811405775954,
+      "flips": 46
+     },
+     "expr": "min(low, neg(div(neg(sma(rsi(rsi(sma(neg(tsmin(rsi(volume, 3), 21)), 89), 13), 13), 8)), ret)))",
+     "seconds": 3.6
+    },
+    {
+     "seed": 3,
+     "score": 3.5477111437601057,
+     "size": 19,
+     "train_sharpe": 1.2862317724448598,
+     "test": {
+      "total": 0.4233050482960905,
+      "sharpe": 0.9692921698295881,
+      "mdd": 0.35332503209161426,
+      "flips": 8
+     },
+     "expr": "mul(zscore(tsmax(abs(tsmax(low, 8)), 21), 34), tsmax(sma(tsmin(abs(mul(mul(high, tsmax(mul(high, tsmax(low, 8)), 89)), low)), 144), 2), 55))",
+     "seconds": 4.7
+    },
+    {
+     "seed": 4,
+     "score": 3.3169321676950227,
+     "size": 5,
+     "train_sharpe": 1.3571165113665546,
+     "test": {
+      "total": 0.007778068340343669,
+      "sharpe": 0.23062163513854977,
+      "mdd": 0.3529250415677574,
+      "flips": 13
+     },
+     "expr": "div(tsmax(high, 13), tsmax(high, 34))",
+     "seconds": 3.4
+    }
+   ],
+   "ensemble_median": {
+    "total": 0.10885785909498491,
+    "sharpe": 0.5121506589718615,
+    "mdd": 0.18148798710460112,
+    "flips": 26
+   },
+   "ensemble_mean": {
+    "total": 0.1285728794210177,
+    "sharpe": 0.6867669494736762,
+    "mdd": 0.14419240307011472,
+    "flips": 18
+   },
+   "ensemble_median_risk": {
+    "total": 0.0007566337314666161,
+    "sharpe": 0.23102723356431182,
+    "mdd": 0.4031683859181857,
+    "flips": 80
+   },
+   "buy_hold": {
+    "total": 0.462007524530315,
+    "sharpe": 0.9016894504312378,
+    "mdd": 0.4525610116118882
+   }
+  },
+  "2025": {
+   "runs": [
+    {
+     "seed": 0,
+     "score": 3.12051805813973,
+     "size": 15,
+     "train_sharpe": 1.3877203386254842,
+     "test": {
+      "total": 0.37188635226921574,
+      "sharpe": 0.8734053708286025,
+      "mdd": 0.29128012372650636,
+      "flips": 16
+     },
+     "expr": "sub(tsmax(high, 13), tsmax(div(open, ema(div(max(tsmax(high, 13), tsmax(zscore(volume, 5), 89)), low), 21)), 34))",
+     "seconds": 3.6
+    },
+    {
+     "seed": 1,
+     "score": 2.862550524409341,
+     "size": 15,
+     "train_sharpe": 1.378312853520899,
+     "test": {
+      "total": -0.10233476992314361,
+      "sharpe": -1.0291446713440837,
+      "mdd": 0.16540142515674883,
+      "flips": 21
+     },
+     "expr": "neg(max(tsmax(gt(sub(low, open), high), 34), roc(tsmin(zscore(abs(roc(tsmin(open, 8), 55)), 13), 8), 2)))",
+     "seconds": 5.3
+    },
+    {
+     "seed": 2,
+     "score": 2.4468954617219576,
+     "size": 6,
+     "train_sharpe": 1.2248964964421458,
+     "test": {
+      "total": -0.11920192045544342,
+      "sharpe": -0.9007179047169648,
+      "mdd": 0.14070213497433803,
+      "flips": 44
+     },
+     "expr": "min(roc(ret, 5), abs(zscore(low, 34)))",
+     "seconds": 3.6
+    },
+    {
+     "seed": 3,
+     "score": 1.316348366835256,
+     "size": 3,
+     "train_sharpe": 0.710138626165334,
+     "test": {
+      "total": -0.3580316540491295,
+      "sharpe": -1.2962420573602,
+      "mdd": 0.4243142465042229,
+      "flips": 89
+     },
+     "expr": "zscore(roc(open, 5), 2)",
+     "seconds": 3.5
+    },
+    {
+     "seed": 4,
+     "score": 2.6054195893285605,
+     "size": 7,
+     "train_sharpe": 1.2035816269901407,
+     "test": {
+      "total": 1.3431407775777067,
+      "sharpe": 1.9199830938577613,
+      "mdd": 0.18034913342854186,
+      "flips": 13
+     },
+     "expr": "div(tsmax(open, 34), neg(tsmax(tsmax(high, 2), 13)))",
+     "seconds": 3.8
+    }
+   ],
+   "ensemble_median": {
+    "total": -0.16304916574731698,
+    "sharpe": -0.7125257304682021,
+    "mdd": 0.1975381094552051,
+    "flips": 55
+   },
+   "ensemble_mean": {
+    "total": 0.1566260723554289,
+    "sharpe": 0.8139855641737048,
+    "mdd": 0.11062421852903359,
+    "flips": 23
+   },
+   "ensemble_median_risk": {
+    "total": -0.08619857352705618,
+    "sharpe": 0.14839444145486044,
+    "mdd": 0.5275697938552174,
+    "flips": 89
+   },
+   "buy_hold": {
+    "total": -0.11014081814858878,
+    "sharpe": 0.2139899837171804,
+    "mdd": 0.6004257684849963
+   }
+  },
+  "2026": {
+   "runs": [
+    {
+     "seed": 0,
+     "score": 1.2918767233181594,
+     "size": 2,
+     "train_sharpe": 0.7679674934214766,
+     "test": {
+      "total": 0.4319093169391812,
+      "sharpe": 1.2372431560218826,
+      "mdd": 0.19945316993544016,
+      "flips": 8
+     },
+     "expr": "zscore(high, 55)",
+     "seconds": 3.9
+    },
+    {
+     "seed": 1,
+     "score": 1.2918767233181594,
+     "size": 2,
+     "train_sharpe": 0.7679674934214766,
+     "test": {
+      "total": 0.4319093169391812,
+      "sharpe": 1.2372431560218826,
+      "mdd": 0.19945316993544016,
+      "flips": 8
+     },
+     "expr": "zscore(high, 55)",
+     "seconds": 3.8
+    },
+    {
+     "seed": 2,
+     "score": 1.817902874693853,
+     "size": 11,
+     "train_sharpe": 0.8993711795904625,
+     "test": {
+      "total": 0.4392339714845157,
+      "sharpe": 1.2996842722701654,
+      "mdd": 0.21740438778310733,
+      "flips": 9
+     },
+     "expr": "zscore(add(hlr, add(roc(high, 34), lt(high, roc(zscore(volume, 55), 34)))), 55)",
+     "seconds": 4.5
+    },
+    {
+     "seed": 3,
+     "score": 2.440573471215198,
+     "size": 21,
+     "train_sharpe": 1.111778973693694,
+     "test": {
+      "total": 0.3661685809343198,
+      "sharpe": 1.1283448394061921,
+      "mdd": 0.1809237328929738,
+      "flips": 10
+     },
+     "expr": "zscore(mul(add(abs(abs(abs(tsmin(open, 89)))), div(max(neg(ret), ret), roc(high, 2))), rsi(add(rsi(abs(high), 55), high), 55)), 55)",
+     "seconds": 4.9
+    },
+    {
+     "seed": 4,
+     "score": 2.9651013750241764,
+     "size": 13,
+     "train_sharpe": 1.4182191208115522,
+     "test": {
+      "total": -0.08592067619672106,
+      "sharpe": -0.1270367435561178,
+      "mdd": 0.2778960036238487,
+      "flips": 5
+     },
+     "expr": "div(min(add(high, close), tsmax(open, 34)), neg(tsmax(add(high, ema(close, 8)), 13)))",
+     "seconds": 4.4
+    }
+   ],
+   "ensemble_median": {
+    "total": 0.4443761443475396,
+    "sharpe": 1.2798750116972422,
+    "mdd": 0.19326503531429795,
+    "flips": 8
+   },
+   "ensemble_mean": {
+    "total": 0.3159885014008139,
+    "sharpe": 1.0957486040977944,
+    "mdd": 0.154497993767575,
+    "flips": 6
+   },
+   "ensemble_median_risk": {
+    "total": 0.10154820539780629,
+    "sharpe": 0.48808541032212766,
+    "mdd": 0.37759693252326676,
+    "flips": 45
+   },
+   "buy_hold": {
+    "total": -0.18433341185338747,
+    "sharpe": -0.11391565644115442,
+    "mdd": 0.5326744005818324
+   }
+  }
+ },
+ "ensemble": {
+  "median": {
+   "total": 0.24319236682421974,
+   "ann": 0.04628650061114792,
+   "sharpe": 0.30223107688493617,
+   "mdd": 0.3526599460677333,
+   "calmar": 0.1312496673559235,
+   "days": 1756
+  },
+  "median_risk": {
+   "total": -0.22080080372913735,
+   "ann": -0.05053668424550062,
+   "sharpe": 0.14322753247032757,
+   "mdd": 0.6767764803510004,
+   "calmar": -0.07467263670169284,
+   "days": 1756
+  },
+  "buy_hold": {
+   "total": -0.3419825855103189,
+   "ann": -0.08331727535149946,
+   "sharpe": 0.21360461199916653,
+   "mdd": 0.7400575194539571,
+   "calmar": -0.11258216173923095,
+   "days": 1756
+  },
+  "ma10_50": {
+   "total": -0.2796276643060167,
+   "ann": -0.06590299691371049,
+   "sharpe": 0.20879293977159885,
+   "mdd": 0.8335610730815957,
+   "calmar": -0.07906198962731477,
+   "days": 1756
+  }
+ }
+}
