@@ -40,8 +40,8 @@ def daily_strat(close: np.ndarray, pos: np.ndarray) -> np.ndarray:
     return run_backtest(close, pos)["strat"]
 
 
-def aggregate(strats: list[np.ndarray]) -> dict:
-    s = np.concatenate(strats)
+def stats(s: np.ndarray) -> dict:
+    s = np.asarray(s, dtype=float)
     eq = np.cumprod(1.0 + s)
     total = float(eq[-1] - 1.0)
     ann = float(eq[-1] ** (BARS_PER_YEAR / len(s)) - 1.0)
@@ -51,7 +51,12 @@ def aggregate(strats: list[np.ndarray]) -> dict:
     mdd = float(np.max(1.0 - eq / np.maximum(peak, 1e-12)))
     return {"total": total, "ann": ann, "sharpe": sharpe, "mdd": mdd,
             "calmar": ann / mdd if mdd > 1e-9 else 0.0,
+            "t_stat": sharpe * float(np.sqrt(len(s) / BARS_PER_YEAR)),
             "days": int(len(s))}
+
+
+def aggregate(strats: list[np.ndarray]) -> dict:
+    return stats(np.concatenate(strats))
 
 
 def parse_years(text: str) -> list[int]:
@@ -76,6 +81,7 @@ def main() -> None:
     years = parse_years(args.years)
     out = {"config": vars(args), "years": {}, "ensemble": {}}
     agg_ens, agg_bh, agg_ma, agg_risk = [], [], [], []
+    dates_all: list[str] = []
     c = pd.Series(df["close"])
 
     for y in years:
@@ -128,6 +134,7 @@ def main() -> None:
         agg_ens.append(daily_strat(seg_close, ens))
         agg_risk.append(daily_strat(seg_close, apply_risk_overlay(seg_close, ens)))
         agg_bh.append(daily_strat(seg_close, np.ones(len(seg_close))))
+        dates_all.extend(hist["open_time"].iloc[lo:test_end].dt.strftime("%Y-%m-%d").tolist())
         maf = c.rolling(10).mean().to_numpy()[lo:test_end]
         mas = c.rolling(50).mean().to_numpy()[lo:test_end]
         ma = np.where(maf > mas, 1.0, -1.0)
@@ -139,16 +146,31 @@ def main() -> None:
               f"| +risk={yrec['ensemble_median_risk']['total']:+8.1%} | B&H={yrec['buy_hold']['total']:+8.1%}",
               flush=True)
 
-    out["ensemble"]["median"] = aggregate(agg_ens)
-    out["ensemble"]["median_risk"] = aggregate(agg_risk)
-    out["ensemble"]["buy_hold"] = aggregate(agg_bh)
-    out["ensemble"]["ma10_50"] = aggregate(agg_ma)
+    all_strats = {"median": agg_ens, "median_risk": agg_risk,
+                  "buy_hold": agg_bh, "ma10_50": agg_ma}
+    for name, strats in all_strats.items():
+        out["ensemble"][name] = aggregate(strats)
+
+    # Exact pre-2026 slice (all of the positive aggregate comes from 2026).
+    mask_pre26 = np.array([d < "2026-01-01" for d in dates_all])
+    out["ex_2026"] = {name: stats(np.concatenate(strats)[mask_pre26])
+                      for name, strats in all_strats.items()}
+    out["series"] = {
+        "dates": dates_all,
+        **{name: np.cumprod(1.0 + np.concatenate(strats)).round(6).tolist()
+           for name, strats in all_strats.items()},
+    }
+
     OUT.mkdir(exist_ok=True)
     (OUT / "walkforward_results.json").write_text(json.dumps(out, indent=1, default=float),
                                                  encoding="utf-8")
     print("\n=== aggregate OOS ===")
     for k, v in out["ensemble"].items():
-        print(f"{k:10s} total={v['total']:+9.1%} ann={v['ann']:+7.1%} sharpe={v['sharpe']:5.2f} "
+        print(f"{k:12s} total={v['total']:+9.1%} ann={v['ann']:+7.1%} sharpe={v['sharpe']:5.2f} "
+              f"mdd={v['mdd']:6.1%} calmar={v['calmar']:5.2f} t={v['t_stat']:4.2f} days={v['days']}")
+    print("\n=== ex-2026 (2022..2025) ===")
+    for k, v in out["ex_2026"].items():
+        print(f"{k:12s} total={v['total']:+9.1%} ann={v['ann']:+7.1%} sharpe={v['sharpe']:5.2f} "
               f"mdd={v['mdd']:6.1%} days={v['days']}")
     print(f"written: {OUT / 'walkforward_results.json'}")
 
