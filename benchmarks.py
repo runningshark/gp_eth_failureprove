@@ -29,7 +29,7 @@ from .trend import vol_scale
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "out"
-DEFAULT_DATA = HERE.parent / "cache_ETHUSDT_1d_3000.csv"
+DEFAULT_DATA = HERE / "cache_ETHUSDT_1d_3000.csv"
 
 
 # ---------------------------------------------------------------- data helpers

@@ -132,13 +132,16 @@ def per_year(df: pd.DataFrame, close: np.ndarray, pos: np.ndarray,
 
 # ------------------------------------------------------------------- chart
 def render_html(path: Path, dates: list[str], curves: dict[str, list[float]],
-                title: str, subtitle: str, per_year: dict) -> None:
-    W, H = 1040, 760
+                title: str, subtitle: str, per_year: dict,
+                note: str | None = None,
+                labels: dict[str, str] | None = None) -> None:
+    W = 1040
+    H = max(760, 712 + len(per_year) * 18)   # room for every per-year row
     ML, MR = 78, 28
     P1_TOP, P1_BOT = 96, 430
     P2_TOP, P2_BOT = 510, 640
     colors = {"trend": "#2563eb", "buy_hold": "#9ca3af"}
-    labels = {"trend": "趋势策略", "buy_hold": "买入持有"}
+    labels = labels or {"trend": "趋势策略", "buy_hold": "买入持有"}
 
     allv = [v for k in curves for v in curves[k]]
     vmin, vmax = min(allv), max(allv)
@@ -230,7 +233,7 @@ def render_html(path: Path, dates: list[str], curves: dict[str, list[float]],
                                (f'{rec["mdd"]:.1%}', 260, "#111827")):
             add(f'<text x="{ML+dx}" y="{yy}" font-size="11.5" fill="{color}">{val}</text>')
     add(f'<text x="{ML}" y="{H-10}" font-size="10.5" fill="#9ca3af">'
-        '* 2026 为 1-10 月部分年份。5 bp/边手续费，不含资金费率。</text>')
+        f'{note or "* 2026 为 1-10 月部分年份。5 bp/边手续费，不含资金费率。"}</text>')
     add("</svg>")
     html = ("<!doctype html><html><head><meta charset='utf-8'><title>gp_eth trend</title>"
             "</head><body style='margin:0;background:#fff'>" + "".join(p) + "</body></html>")
@@ -240,7 +243,7 @@ def render_html(path: Path, dates: list[str], curves: dict[str, list[float]],
 # ---------------------------------------------------------------------- main
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data", default=str(HERE.parent / "cache_ETHUSDT_1d_3000.csv"))
+    ap.add_argument("--data", default=str(HERE / "cache_ETHUSDT_1d_3000.csv"))
     ap.add_argument("--btc", default=None, help="aligned BTC daily CSV for confirmation")
     ap.add_argument("--start", default=None)
     ap.add_argument("--vol", type=float, default=VOL_TARGET)

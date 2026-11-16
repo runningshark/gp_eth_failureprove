@@ -168,6 +168,139 @@ def test_trend_btc_confirmation_masks_opposite_signals():
     assert np.all(pos[:60] == 0.0)
 
 
+def _df4h(n: int = 800, seed: int = 11) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    ret = rng.normal(0.0002, 0.012, n)
+    close = 100 * np.cumprod(1 + ret)
+    open_ = np.r_[close[0], close[:-1]]
+    return pd.DataFrame({"open_time": pd.date_range("2022-01-01", periods=n, freq="4h"),
+                         "open": open_, "high": np.maximum(close, open_) * 1.003,
+                         "low": np.minimum(close, open_) * 0.997,
+                         "close": close, "volume": 1.0})
+
+
+def test_aggressive_signal_no_lookahead():
+    from .aggressive import raw_signal
+    df, btc = _df4h(700, 1), _df4h(700, 2)
+    full = raw_signal(df, btc)
+    for k in (400, 600):
+        part = raw_signal(df.iloc[:k], btc.iloc[:k])
+        assert np.array_equal(full[:k], part), f"future data changed past signal at k={k}"
+
+
+def test_aggressive_long_only_and_leverage_bounds():
+    from .aggressive import backtest, raw_signal
+    df = _df4h(700)
+    raw = raw_signal(df, None, long_only=True)
+    assert np.all(raw >= 0.0)
+    r = backtest(df, raw, vol_target=1.5, max_lev=10.0)
+    assert np.nanmax(np.abs(r["position"])) <= 10.0 + 1e-9
+    assert np.all(np.isfinite(r["equity"]))
+
+
+def test_aggressive_backtest_no_lookahead():
+    from .aggressive import backtest, raw_signal
+    df = _df4h(700)
+    raw = raw_signal(df, None)
+    full = backtest(df, raw)
+    for k in (450, 650):
+        part = backtest(df.iloc[:k].reset_index(drop=True), raw[:k])
+        assert np.allclose(full["equity"][:k], part["equity"]), f"future data changed equity at k={k}"
+        assert np.allclose(full["position"][:k], part["position"])
+
+
+def test_aggressive_liquidation_triggers():
+    from .aggressive import backtest
+    n = 400
+    rng = np.random.default_rng(3)
+    close = 100 * np.cumprod(1 + rng.normal(0, 0.01, n))
+    close = np.r_[close, close[-1] * 0.6]          # -40% crash in one bar
+    df = pd.DataFrame({"open_time": pd.date_range("2022-01-01", periods=n + 1, freq="4h"),
+                       "open": close, "high": close, "low": close,
+                       "close": close, "volume": 1.0})
+    raw = np.ones(n + 1)
+    # huge vol target pins the position at the 10x cap
+    r = backtest(df, raw, vol_target=100.0, max_lev=10.0)
+    assert r["liq"] == n, f"expected liquidation on the crash bar, got {r['liq']}"
+    assert r["equity"][-1] == 0.0
+
+
+def test_aggressive_band_cuts_turnover():
+    from .aggressive import backtest, raw_signal
+    df = _df4h(700)
+    raw = raw_signal(df, None)
+    a = backtest(df, raw, band=0.0)
+    b = backtest(df, raw, band=0.3)
+    ta = np.sum(np.abs(np.diff(a["position"])))
+    tb = np.sum(np.abs(np.diff(b["position"])))
+    assert tb < ta, "dead-band should reduce turnover"
+    # ...but must not change the direction of the trade
+    assert np.all(np.sign(b["position"]) == np.sign(a["position"]))
+
+
+
+def test_fast4h_no_lookahead():
+    from .fast4h import raw_signal
+    df, btc = _df4h(1200, 4), _df4h(1200, 5)
+    full = raw_signal(df, btc)
+    for k in (600, 900):
+        part = raw_signal(df.iloc[:k].reset_index(drop=True),
+                          btc.iloc[:k].reset_index(drop=True))
+        assert np.array_equal(full[:k], part), f"future data changed past fast signal at k={k}"
+
+
+def test_fast4h_signal_is_binary_and_long_only():
+    from .fast4h import raw_signal
+    df, btc = _df4h(900, 6), _df4h(900, 7)
+    raw = raw_signal(df, btc)
+    assert set(np.unique(raw)) <= {0.0, 1.0}
+    assert np.all(raw[:12 * 6] == 0.0)
+
+
+def test_fast4h_hysteresis_trades_less_than_raw_sign():
+    from .fast4h import momentum_state
+    rng = np.random.default_rng(9)
+    close = 100 * np.cumprod(1 + rng.normal(0, 0.01, 1500))
+    state = momentum_state(close)
+    raw_sign = np.sign(np.r_[np.zeros(12), close[12:] / close[:-12] - 1.0])
+    assert np.sum(np.abs(np.diff(state))) < np.sum(np.abs(np.diff(raw_sign)))
+
+
+def test_fast4h_backtest_respects_cap():
+    from .aggressive import backtest
+    from .fast4h import raw_signal
+    df, btc = _df4h(900, 8), _df4h(900, 9)
+    raw = raw_signal(df, btc)
+    r = backtest(df, raw, vol_target=2.0, max_lev=4.0, band=0.4, vol_n=240)
+    assert np.nanmax(np.abs(r["position"])) <= 4.0 + 1e-9
+    assert np.all(np.isfinite(r["equity"]))
+    assert r["liq"] < 0
+
+
+def test_range_breakout_zero_threshold_is_silent():
+    """0.7 这种阈值在真实数据上永远不成立; 降到 0 必须完全不发信号, 否则就是泄露。"""
+    from .range_breakout import raw_signal_rb
+    df, btc = _df4h(900, 21), _df4h(900, 22)
+    raw = raw_signal_rb(df, btc, thresh=0.0, vol_mult=0, ma_len=0, btc_ma_len=0)
+    assert np.all(raw == 0.0)
+
+
+def test_range_breakout_holds_after_breakout():
+    """突破后必须持有到相反边界, 而不是只给一根 4h 的信号。"""
+    from .range_breakout import raw_signal_rb
+    n = 320
+    close = np.full(n, 100.0)
+    close[200:] = 110.0                      # 突破后一直留在区间外
+    df = pd.DataFrame({"open_time": pd.date_range("2022-01-01", periods=n, freq="4h"),
+                       "open": np.r_[close[0], close[:-1]],
+                       "high": close * 1.001, "low": close * 0.999,
+                       "close": close, "volume": 1.0})
+    raw = raw_signal_rb(df, None, range_n=24, thresh=100.0,
+                        vol_mult=0, ma_len=0, btc_ma_len=0)
+    assert raw[200] == 1.0, "突破那根应该开多"
+    assert np.sum(raw[200:] == 1.0) > 10, "应该持有, 而不是一根就平"
+
+
 def main() -> None:
     tests = [(name, fn) for name, fn in sorted(globals().items())
              if name.startswith("test_") and callable(fn)]

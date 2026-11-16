@@ -18,9 +18,10 @@ from .evolve import evolve, year_folds
 from .export_pine import to_pine
 from .individual import to_expr
 
-ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "cache_ETHUSDT_1d_3000.csv"
-OUT = ROOT / "gp_eth" / "out"
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
+DATA = HERE / "cache_ETHUSDT_1d_3000.csv"
+OUT = HERE / "out"
 
 
 def fmt(m: dict) -> str:

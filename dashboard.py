@@ -19,7 +19,7 @@ from . import live_runner as lr
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-CSV_CACHE = ROOT / "cache_ETHUSDT_1d_3000.csv"
+CSV_CACHE = HERE / "cache_ETHUSDT_1d_3000.csv"
 
 app = Flask(__name__)
 _charts_cache = {"ts": 0.0, "data": None}

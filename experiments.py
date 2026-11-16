@@ -27,7 +27,7 @@ from .individual import tree_from_json, to_position
 from .primitives import build_context, eval_tree
 
 ROOT = Path(__file__).resolve().parent.parent
-DATA = ROOT / "cache_ETHUSDT_1d_3000.csv"
+DATA = Path(__file__).resolve().parent / "cache_ETHUSDT_1d_3000.csv"
 OUT = Path(__file__).resolve().parent / "out"
 
 
