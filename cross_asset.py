@@ -4,8 +4,8 @@ This is not a training run.  The trees are used exactly as selected on ETH;
 if the same feature logic still has an edge on a correlated but different
 asset, that is mild evidence against pure ETH curve-fitting.
 
-Usage (from the Desktop):
-    py -m gp_eth.cross_asset --asset btc --start 2024-01-01
+Usage (from the repo root):
+    py main.py cross_asset --asset btc --start 2024-01-01
 
 Writes out/cross_asset.json.
 """

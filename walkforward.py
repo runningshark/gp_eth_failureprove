@@ -5,8 +5,8 @@ For each test year Y: train only on data before Y, use calendar-year fold
 fitness, evolve several seeds, ensemble their positions, then trade year Y.
 All positions at the start of Y carry the 200-bar warmup from earlier data.
 
-Usage (from the Desktop):
-    py -m gp_eth.walkforward --seeds 0-4 --pop 100 --gens 40 --years 2022-2026
+Usage (from the repo root):
+    py main.py walkforward --seeds 0-4 --pop 100 --gens 40 --years 2022-2026
 
 Writes out/walkforward_results.json.
 """

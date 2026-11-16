@@ -5,8 +5,8 @@ same GP with different fitness definitions and seeds, then evaluates every
 result on the same holdout using the *live-consistent* warmup (the 200-bar
 z-score is computed on the full history and sliced, not reset at the split).
 
-Usage (from the Desktop, i.e. the parent of this package):
-    py -m gp_eth.experiments --seeds 0-9 --modes full,folds --pop 100 --gens 40
+Usage (from the repo root):
+    py main.py experiments --seeds 0-9 --modes full,folds --pop 100 --gens 40
 
 Writes out/experiment_results.json.
 """

@@ -1,4 +1,4 @@
-"""Regression tests for gp_eth.  Run from the Desktop:  py -m gp_eth.tests
+"""Regression tests for gp_eth.  Run from the repo root:  py main.py tests
 
 These are deliberately cheap and target the bug classes that matter for a
 trading tool: look-ahead, cost accounting, warmup, and live/backtest parity.

@@ -4,8 +4,8 @@ The point is to answer "how good does this search look when there is no
 predictable structure?"  We preserve intra-block OHLC shape and volatility
 clustering, but destroy long-range trend/predictability by resampling blocks.
 
-Usage (from the Desktop):
-    py -m gp_eth.null_calibration --reps 10 --pop 100 --gens 40 --block 20
+Usage (from the repo root):
+    py main.py null_calibration --reps 10 --pop 100 --gens 40 --block 20
 
 Writes out/null_calibration.json.
 """
